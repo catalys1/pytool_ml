@@ -25,9 +25,17 @@ def mode(a, axis=0):
 
 
 def parseArff(filepath):
-	'''Parses an arff file and returns a 3-tuple containing
+	'''Parses an arff file.
+
+	Parameters
+	----------
+	filepath : string
+		Path to the arff file
+
+	Returns
+	-------
+	A 3-tuple containing
 	(name-of-dataset, list-of-attributes, list-of-data-instances).
-	NOTE: this function does not yet handle the "?" unknown values.
 	'''
 	# This function parses the arff file using regular expressions.
 	# Open the arff file and read it in as one big string
@@ -51,16 +59,17 @@ def parseArff(filepath):
 	#   dictionaries of {value:position} for nominal values
 	enum = {}
 	for i,a in enumerate(attributes):
-		if a[1].startswith('{'):
+		if a[1].startswith('{'):  # nominal valued attribute
 			attributes[i] = (a[0],re.split('[\s]*,[\s]*',a[1][1:-1]))
 			enum[i] = {x:float(j) for j,x in enumerate(attributes[i][1])}
-		else:
+		else:  # continuous valued attribute
 			attributes[i] = (a[0], a[1].lower())
 
 	# Construct a pattern to match data instances based on the type and position
 	# of each attribute
+	cont_attr_p = '(-?[\d\.]*|\?)'  # match pos/neg numbers with or without decimals
 	inst_p = ',[\s]*'.join([
-		'(-?[\d\.]*|\?)' if type(x[1]) == str
+		cont_attr_p if type(x[1]) == str
 		else '(\?|{})'.format('|'.join(['(?:{})'.format(a) for a in x[1]]))
 		for x in attributes])
 	inst_p = inst_p.replace('+', '\+')
@@ -84,6 +93,7 @@ def parseArff(filepath):
 	# Find all the instances and put them in a suitable form. By making all
 	# the values floats, we can easily turn the instance array into a numpy
 	# array
+	# Look at everything below the @DATA marker
 	instances = re.split('@DATA',s,flags=re.I)[1]
 	instances = [
 		[convert_nums(a,i) for i,a in enumerate(x.groups())] 
@@ -94,11 +104,19 @@ def parseArff(filepath):
 
 
 class Matrix(object):
+	'''The Matrix class is a container for the data and metadata of a dataset.
+	It also contains some useful functions for manipulating and working with
+	the data.
+	'''
 
+	# Missing values in the dataset will be replaced with np.infty
 	MISSING = np.infty
 
 	def __init__(self, arff_file=None):
-		'''Initialize a matrix
+		'''Initialize a matrix.
+		If arff_file is none, then create an empty matrix. Otherwise populate
+		the matrix based on the data in the arff_file. arff_file is a string
+		with the path to the file.
 		'''
 		self.dataset_name = 'Untitled'
 		self.data = []
@@ -133,7 +151,7 @@ class Matrix(object):
 		Split the matrix into feature and label matrices. m1 retains the
 		feature columns and m2 retains the class column. The information for 
 		the label matrix is taken from m1, and also removed from m1. This 
-		function assumes that there is only one class label column. The default
+		function assumes that there is only one class-label column. The default
 		label column is the last column.
 		'''
 		# Convert a negative index to a positive index
@@ -163,7 +181,7 @@ class Matrix(object):
 
 
 	def split(self, args):
-		'''IMPLEMENT
+		'''TODO: implement
 		'''
 		pass
 
